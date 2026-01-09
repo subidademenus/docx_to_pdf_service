@@ -33,18 +33,19 @@ async def convert(file: UploadFile = File(...)):
             env["TMPDIR"] = "/tmp"
             env["LANG"] = "C.UTF-8"
 
-            cmd = [
-                "soffice",
-                "--headless",
-                "--invisible",
-                "--nologo",
-                "--nodefault",
-                "--nolockcheck",
-                "--norestore",
-                "--convert-to", "pdf:writer_pdf_Export",
-                "--outdir", tmp,
-                in_path,
-            ]
+cmd = [
+    "soffice",
+    "--headless",
+    "--invisible",
+    "--nologo",
+    "--nodefault",
+    "--nolockcheck",
+    "--norestore",
+    "--convert-to", "pdf",
+    "--outdir", tmp,
+    in_path,
+]
+
 
             p = subprocess.run(cmd, cwd=tmp, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
@@ -59,3 +60,4 @@ async def convert(file: UploadFile = File(...)):
 
     except Exception as e:
         return PlainTextResponse("Server exception:\n" + str(e), status_code=500)
+
