@@ -33,17 +33,18 @@ async def convert(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, f)
 
         cmd = [
-            "libreoffice",
-            "--headless",
-            "--invisible",
-            "--nologo",
-            "--nodefault",
-            "--nolockcheck",
-            "--norestore",
-            "--convert-to", "pdf:writer_pdf_Export",
-            "--outdir", tmp,
-            in_path
-        ]
+    "soffice",
+    "--headless",
+    "--invisible",
+    "--nologo",
+    "--nodefault",
+    "--nolockcheck",
+    "--norestore",
+    "--convert-to", "pdf:writer_pdf_Export",
+    "--outdir", tmp,
+    in_path
+]
+
 
         code, out = run(cmd)
         print("=== LibreOffice output ===")
@@ -57,3 +58,4 @@ async def convert(file: UploadFile = File(...)):
             raise HTTPException(status_code=500, detail=f"No PDF generated. Output:\n{out}")
 
         return FileResponse(pdf_path, media_type="application/pdf", filename="output.pdf")
+
