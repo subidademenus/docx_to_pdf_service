@@ -22,6 +22,7 @@ def run(cmd):
     )
     return p.returncode, p.stdout
 
+
 @app.post("/convert")
 async def convert(file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".docx"):
@@ -32,7 +33,7 @@ async def convert(file: UploadFile = File(...)):
         with open(in_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-        cmd = [
+cmd = [
     "soffice",
     "--headless",
     "--invisible",
@@ -44,6 +45,7 @@ async def convert(file: UploadFile = File(...)):
     "--outdir", tmp,
     in_path
 ]
+
 
 
         code, out = run(cmd)
@@ -58,4 +60,5 @@ async def convert(file: UploadFile = File(...)):
             raise HTTPException(status_code=500, detail=f"No PDF generated. Output:\n{out}")
 
         return FileResponse(pdf_path, media_type="application/pdf", filename="output.pdf")
+
 
