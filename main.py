@@ -33,18 +33,10 @@ async def convert(file: UploadFile = File(...)):
         with open(in_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-cmd = [
-    "soffice",
-    "--headless",
-    "--invisible",
-    "--nologo",
-    "--nodefault",
-    "--nolockcheck",
-    "--norestore",
-    "--convert-to", "pdf:writer_pdf_Export",
-    "--outdir", tmp,
-    in_path
-]
+cmd = ["soffice", "--headless", "--invisible", "--nologo", "--nodefault",
+       "--nolockcheck", "--norestore", "--convert-to", "pdf:writer_pdf_Export",
+       "--outdir", tmp, in_path]
+
 
 
 
@@ -60,5 +52,6 @@ cmd = [
             raise HTTPException(status_code=500, detail=f"No PDF generated. Output:\n{out}")
 
         return FileResponse(pdf_path, media_type="application/pdf", filename="output.pdf")
+
 
 
