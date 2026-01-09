@@ -1,16 +1,19 @@
 FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV HOME=/tmp
+ENV TMPDIR=/tmp
 
-RUN apt-get update && apt-get install -y \
-    libreoffice \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-writer \
+    libreoffice-core \
+    libreoffice-common \
+    fonts-dejavu \
+    fonts-liberation \
     libxinerama1 \
     libxrender1 \
     libxext6 \
     libgl1 \
-    fonts-dejavu \
-    fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -20,5 +23,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py .
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-
+EXPOSE 8000
+CMD ["uvicorn","main:app","--host","0.0.0.0","--port","8000"]
