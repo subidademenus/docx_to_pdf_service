@@ -2,12 +2,14 @@ import os
 import shutil
 import subprocess
 import tempfile
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-def run(cmd):
+
+def run(cmd, workdir: str):
     env = os.environ.copy()
     env["HOME"] = "/tmp"
     env["TMPDIR"] = "/tmp"
@@ -15,6 +17,7 @@ def run(cmd):
 
     p = subprocess.run(
         cmd,
+        cwd=workdir,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -30,17 +33,28 @@ async def convert(file: UploadFile = File(...)):
 
     with tempfile.TemporaryDirectory() as tmp:
         in_path = os.path.join(tmp, "input.docx")
+
+        # Guardar el DOCX subido
         with open(in_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-cmd = ["soffice", "--headless", "--invisible", "--nologo", "--nodefault",
-       "--nolockcheck", "--norestore", "--convert-to", "pdf:writer_pdf_Export",
-       "--outdir", tmp, in_path]
+        # Ejecutar LibreOffice (binario: soffice)
+        cmd = [
+            "soffice",
+            "--headless",
+            "--invisible",
+            "--nologo",
+            "--nodefault",
+            "--nolockcheck",
+            "--norestore",
+            "--convert-to",
+            "pdf:writer_pdf_Export",
+            "--outdir",
+            tmp,
+            in_path,
+        ]
 
-
-
-
-        code, out = run(cmd)
+        code, out = run(cmd, workdir=tmp)
         print("=== LibreOffice output ===")
         print(out)
 
@@ -52,6 +66,3 @@ cmd = ["soffice", "--headless", "--invisible", "--nologo", "--nodefault",
             raise HTTPException(status_code=500, detail=f"No PDF generated. Output:\n{out}")
 
         return FileResponse(pdf_path, media_type="application/pdf", filename="output.pdf")
-
-
-
