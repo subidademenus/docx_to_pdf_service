@@ -8,7 +8,17 @@ from fastapi.responses import FileResponse
 app = FastAPI()
 
 def run(cmd):
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    env = os.environ.copy()
+    env["HOME"] = "/tmp"
+    env["TMPDIR"] = "/tmp"
+
+    p = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        env=env
+    )
     if p.returncode != 0:
         raise RuntimeError(p.stdout)
 
@@ -19,16 +29,38 @@ async def convert(file: UploadFile = File(...)):
 
     with tempfile.TemporaryDirectory() as tmp:
         in_path = os.path.join(tmp, "input.docx")
+
         with open(in_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-        run([
-            "libreoffice", "--headless", "--nologo", "--nolockcheck",
-            "--convert-to", "pdf", "--outdir", tmp, in_path
-        ])
+        try:
+            run([
+                "libreoffice",
+                "--headless",
+                "--invisible",
+                "--nologo",
+                "--nodefault",
+                "--nolockcheck",
+                "--norestore",
+                "--convert-to", "pdf",
+                "--outdir", tmp,
+                in_path
+            ])
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"LibreOffice error:\n{e}"
+            )
 
         pdf_path = os.path.join(tmp, "input.pdf")
-        if not os.path.exists(pdf_path):
-            raise HTTPException(status_code=500, detail="PDF no generado")
+        if not os.path.exists(pdf_path) or os.path.getsize(pdf_path) < 1000:
+            raise HTTPException(
+                status_code=500,
+                detail="LibreOffice no generó PDF válido"
+            )
 
-        return FileResponse(pdf_path, media_type="application/pdf", filename="output.pdf")
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename="output.pdf"
+        )
