@@ -1,6 +1,6 @@
 import os, shutil, subprocess, tempfile
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse
 
 app = FastAPI()
 
@@ -12,8 +12,17 @@ def health():
     except Exception as e:
         return {"ok": False, "version": "v3-debug-2026-01-09", "error": str(e)}
 
-@app.post("/convert")
+@app.post(
+    "/convert",
+    responses={
+        200: {
+            "content": {"application/pdf": {}},
+            "description": "PDF generado"
+        }
+    }
+)
 async def convert(file: UploadFile = File(...)):
+
     try:
         with tempfile.TemporaryDirectory() as tmp:
             in_path = os.path.join(tmp, "input.docx")
@@ -51,7 +60,12 @@ async def convert(file: UploadFile = File(...)):
             if not pdf_found:
                 return PlainTextResponse("No PDF generated.\nOutput:\n" + p.stdout, status_code=500)
 
-            return FileResponse(pdf_found, media_type="application/pdf", filename="output.pdf")
+               return FileResponse(
+        pdf_found,
+        media_type="application/pdf",
+        filename="output.pdf"
+    )
 
     except Exception as e:
         return PlainTextResponse("Server exception:\n" + str(e), status_code=500)
+
