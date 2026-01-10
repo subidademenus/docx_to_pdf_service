@@ -1,7 +1,35 @@
+import os
+import shutil
+import subprocess
+import tempfile
+import traceback
+
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi.responses import FileResponse, PlainTextResponse
+
+app = FastAPI()
+
+
+@app.exception_handler(Exception)
+async def all_exception_handler(request: Request, exc: Exception):
+    # Para ver el error real si algo falla
+    return PlainTextResponse(traceback.format_exc(), status_code=500)
+
+
+@app.get("/health")
+def health():
+    v = subprocess.run(
+        ["soffice", "--version"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    ).stdout.strip()
+    return {"ok": True, "version": "fixed-pdf-search-2026-01-10", "soffice": v}
+
+
 @app.post("/convert", responses={200: {"content": {"application/pdf": {}}, "description": "PDF generado"}})
 async def convert(file: UploadFile = File(...)):
-
-    if not file.filename.lower().endswith(".docx"):
+    if not (file.filename or "").lower().endswith(".docx"):
         raise HTTPException(status_code=400, detail="Solo DOCX")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -26,12 +54,19 @@ async def convert(file: UploadFile = File(...)):
             in_path
         ]
 
-        p = subprocess.run(cmd, cwd=tmp, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        p = subprocess.run(
+            cmd,
+            cwd=tmp,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
 
         if p.returncode != 0:
             return PlainTextResponse("LibreOffice failed:\n" + p.stdout, status_code=500)
 
-        # ✅ Buscar el PDF real generado
+        # ✅ Buscar el PDF real generado (no asumir input.pdf)
         pdf_found = None
         for name in os.listdir(tmp):
             if name.lower().endswith(".pdf"):
