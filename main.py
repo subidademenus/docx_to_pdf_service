@@ -1,19 +1,3 @@
-import os, shutil, subprocess, tempfile, traceback
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
-from fastapi.responses import FileResponse, PlainTextResponse
-
-app = FastAPI()
-
-@app.exception_handler(Exception)
-async def all_exception_handler(request: Request, exc: Exception):
-    # Devuelve el traceback COMPLETO en vez de "Internal Server Error"
-    return PlainTextResponse(traceback.format_exc(), status_code=500)
-
-@app.get("/health")
-def health():
-    v = subprocess.run(["soffice","--version"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True).stdout.strip()
-    return {"ok": True, "version": "trace-2026-01-10", "soffice": v}
-
 @app.post("/convert", responses={200: {"content": {"application/pdf": {}}, "description": "PDF generado"}})
 async def convert(file: UploadFile = File(...)):
 
@@ -47,13 +31,14 @@ async def convert(file: UploadFile = File(...)):
         if p.returncode != 0:
             return PlainTextResponse("LibreOffice failed:\n" + p.stdout, status_code=500)
 
+        # ✅ Buscar el PDF real generado
         pdf_found = None
         for name in os.listdir(tmp):
             if name.lower().endswith(".pdf"):
                 pdf_found = os.path.join(tmp, name)
                 break
 
-        if not pdf_found:
+        if not pdf_found or not os.path.exists(pdf_found):
             return PlainTextResponse("No PDF generated.\nOutput:\n" + p.stdout, status_code=500)
 
         return FileResponse(pdf_found, media_type="application/pdf", filename="output.pdf")
