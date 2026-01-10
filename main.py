@@ -9,12 +9,9 @@ from fastapi.responses import FileResponse, PlainTextResponse
 
 app = FastAPI()
 
-
 @app.exception_handler(Exception)
 async def all_exception_handler(request: Request, exc: Exception):
-    # Para ver el error real si algo falla
     return PlainTextResponse(traceback.format_exc(), status_code=500)
-
 
 @app.get("/health")
 def health():
@@ -24,8 +21,7 @@ def health():
         stderr=subprocess.STDOUT,
         text=True
     ).stdout.strip()
-    return {"ok": True, "version": "fixed-pdf-search-2026-01-10", "soffice": v}
-
+    return {"ok": True, "version": "pdf-search-fixed", "soffice": v}
 
 @app.post("/convert", responses={200: {"content": {"application/pdf": {}}, "description": "PDF generado"}})
 async def convert(file: UploadFile = File(...)):
@@ -66,7 +62,7 @@ async def convert(file: UploadFile = File(...)):
         if p.returncode != 0:
             return PlainTextResponse("LibreOffice failed:\n" + p.stdout, status_code=500)
 
-        # ✅ Buscar el PDF real generado (no asumir input.pdf)
+        # ✅ Buscar el PDF real generado
         pdf_found = None
         for name in os.listdir(tmp):
             if name.lower().endswith(".pdf"):
