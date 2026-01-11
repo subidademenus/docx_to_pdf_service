@@ -24,6 +24,46 @@ def health():
     except Exception as e:
         return {"ok": False, "version": VERSION, "error": str(e)}
 
+def normalize_wm(wm: str) -> str:
+    wm = (wm or "").strip().upper()
+    return wm if wm in ("BORRADOR", "CONFIDENCIAL") else ""
+
+def make_watermark_pdf(path_out: str, text: str):
+    # PDF A4 con texto grande en diagonal (encima)
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+
+    w, h = A4
+    c = canvas.Canvas(path_out, pagesize=A4)
+
+    # Transparencia (si está disponible)
+    try:
+        c.setFillAlpha(0.15)
+    except Exception:
+        pass
+
+    c.setFont("Helvetica-Bold", 80)
+    c.setFillColorRGB(0.2, 0.2, 0.2)  # gris oscuro suave
+
+    c.saveState()
+    c.translate(w/2, h/2)
+    c.rotate(35)
+    c.drawCentredString(0, 0, text)
+    c.restoreState()
+
+    c.showPage()
+    c.save()
+
+def pdftk_stamp(foreground_pdf: str, stamp_pdf: str, output_pdf: str):
+    # overlay (encima)
+    cmd = ["pdftk", foreground_pdf, "stamp", stamp_pdf, "output", output_pdf]
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    if p.returncode != 0 or not os.path.exists(output_pdf):
+        raise RuntimeError("PDFTK stamp failed:\n" + p.stdout)
+
+
+
+
 @app.post("/convert")
 async def convert(
     file: UploadFile = File(...),      # DOCX
@@ -78,6 +118,16 @@ async def convert(
         # 2) aplicar membrete
         final_pdf = os.path.join(tmp, "final.pdf")
         cmd_bg = ["pdftk", content_pdf, "multibackground", tpl_pdf, "output", final_pdf]
+        wm = normalize_wm(watermark)
+if wm:
+    wm_pdf = os.path.join(tmp, "wm.pdf")
+    out_pdf = os.path.join(tmp, "final_wm.pdf")
+
+    make_watermark_pdf(wm_pdf, wm)
+    pdftk_stamp(final_pdf, wm_pdf, out_pdf)
+
+    final_pdf = out_pdf  # <- ahora el final es el watermarked
+
         p2 = subprocess.run(cmd_bg, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         if p2.returncode != 0 or not os.path.exists(final_pdf):
             return PlainTextResponse("PDFTK failed:\n" + p2.stdout, status_code=500)
@@ -90,4 +140,5 @@ async def convert(
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=documento_membretado.pdf"}
     )
+
 
