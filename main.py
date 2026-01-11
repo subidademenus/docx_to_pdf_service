@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 import traceback
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form
 from fastapi.responses import Response, PlainTextResponse
 
 app = FastAPI()
@@ -26,8 +26,9 @@ def health():
 
 @app.post("/convert")
 async def convert(
-    file: UploadFile = File(...),        # DOCX
-    template: UploadFile = File(...),    # PDF
+    file: UploadFile = File(...),      # DOCX
+    template: UploadFile = File(...),  # PDF
+    watermark: str = Form(""),         # <-- NUEVO
 ):
     if not (file.filename or "").lower().endswith(".docx"):
         raise HTTPException(status_code=400, detail="Solo DOCX")
@@ -89,3 +90,4 @@ async def convert(
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=documento_membretado.pdf"}
     )
+
