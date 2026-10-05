@@ -14,7 +14,7 @@ ALLOWED = {".docx", ".xlsx", ".xls"}
 
 @app.get("/health")
 def health():
-    return {"ok": True, "formats": ["docx", "xlsx", "xls"]}
+    return {"ok": True, "version": "3.0-xlsx", "formats": ["docx", "xlsx", "xls"], "endpoint": "/convert"}
 
 
 def _run_libreoffice(src: Path, out_dir: Path) -> Path:
