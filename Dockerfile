@@ -1,33 +1,22 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV HOME=/tmp
-ENV TMPDIR=/tmp
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libreoffice \
     libreoffice-writer \
-    libreoffice-core \
-    libreoffice-common \
-    fonts-dejavu \
+    libreoffice-calc \
+    fonts-dejavu-core \
     fonts-liberation \
-    libxinerama1 \
-    libxrender1 \
-    libxext6 \
-    libgl1 \
-    pdftk \
-    build-essential \
-    python3-dev \
-    libfreetype6-dev \
-    libjpeg62-turbo-dev \
-    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
 
-COPY main.py .
-
-EXPOSE 8000
-CMD ["uvicorn","main:app","--host","0.0.0.0","--port","8000"]
+ENV PORT=10000
+EXPOSE 10000
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
